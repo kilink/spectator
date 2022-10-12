@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -591,5 +592,23 @@ public class ArrayTagSetTest {
     Assertions.assertTrue(spliterator.hasCharacteristics(Spliterator.NONNULL));
     Assertions.assertTrue(spliterator.hasCharacteristics(Spliterator.SIZED));
     Assertions.assertEquals(3L, spliterator.getExactSizeIfKnown());
+  }
+
+  @Test
+  public void testAdd() {
+    ArrayTagSet tags = ArrayTagSet.create("a", "v1", "b", "v2", "c", "v3");
+    Assertions.assertEquals(ArrayTagSet.create("a", "v1", "b", "v2-updated", "c", "v3"), tags.add("b", "v2-updated"));
+    Assertions.assertSame(tags, tags.add("c", "v3"));
+    Assertions.assertEquals(ArrayTagSet.create("0", "v0", "a", "v1", "b", "v2", "c", "v3"), tags.add("0", "v0"));
+    Assertions.assertEquals(ArrayTagSet.create("a", "v1", "b", "v2", "c", "v3", "x", "v4"), tags.add("x", "v4"));
+  }
+
+  @Test
+  public void testAddToSetWithSingleTag() {
+    ArrayTagSet tags = ArrayTagSet.create("b", "v2");
+    Assertions.assertEquals(ArrayTagSet.create("b", "v2-updated"), tags.add("b", "v2-updated"));
+    Assertions.assertSame(tags, tags.add("b", "v2"));
+    Assertions.assertEquals(ArrayTagSet.create("a", "v1", "b", "v2"), tags.add("a", "v1"));
+    Assertions.assertEquals(ArrayTagSet.create("b", "v2", "c", "v3"), tags.add("c", "v3"));
   }
 }

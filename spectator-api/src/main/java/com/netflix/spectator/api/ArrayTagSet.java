@@ -102,33 +102,38 @@ final class ArrayTagSet implements TagList {
   }
 
   /** Add a new tag to the set. */
-  @SuppressWarnings("PMD.AvoidArrayLoops")
   ArrayTagSet add(String k, String v) {
     Preconditions.checkNotNull(k, "key");
     Preconditions.checkNotNull(v, "value");
     if (length == 0) {
       return new ArrayTagSet(new String[] {k, v});
     } else {
+
+      int idx = binarySearch(tags, 0, length, k);
+
+      if (idx >= 0) {
+        if (tags[idx+1].equals(v)) {
+          return this;
+        }
+        String[] newTags = Arrays.copyOf(tags, length);
+        newTags[idx+1] = v;
+        return new ArrayTagSet(newTags);
+      }
+      idx = -idx - 1;
       String[] newTags = new String[length + 2];
-      int i = 0;
-      for (; i < length && tags[i].compareTo(k) < 0; i += 2) {
-        newTags[i] = tags[i];
-        newTags[i + 1] = tags[i + 1];
-      }
-      if (i < length && tags[i].equals(k)) {
-        // Override
-        newTags[i++] = k;
-        newTags[i++] = v;
-        System.arraycopy(tags, i, newTags, i, length - i);
-        i = length;
+      newTags[idx] = k;
+      newTags[idx+1] = v;
+
+      if (idx == 0) {
+        System.arraycopy(tags, 0, newTags, 2, length);
+      } else if (idx == length) {
+        System.arraycopy(tags, 0, newTags, 0, length);
       } else {
-        // Insert
-        newTags[i] = k;
-        newTags[i + 1] = v;
-        System.arraycopy(tags, i, newTags, i + 2, length - i);
-        i = newTags.length;
+        System.arraycopy(tags, 0, newTags, 0, idx);
+        System.arraycopy(tags, idx, newTags, idx+2, length-idx);
       }
-      return new ArrayTagSet(newTags, i);
+
+      return new ArrayTagSet(newTags);
     }
   }
 
@@ -491,5 +496,27 @@ final class ArrayTagSet implements TagList {
     return Spliterators.spliterator(iterator(), size(),
             (Spliterator.ORDERED | Spliterator.SORTED | Spliterator.NONNULL
                     | Spliterator.DISTINCT | Spliterator.IMMUTABLE));
+  }
+
+  static int binarySearch(String[] tags, int fromIndex, int toIndex, String key) {
+    int low = fromIndex;
+    int high = toIndex - 1;
+
+    while (low <= high) {
+      int mid = ((low + high) >>> 1);
+      if (mid % 2 != 0) {
+        mid += 1;
+      }
+      String midVal = tags[mid];
+
+      int cmp = midVal.compareTo(key);
+      if (cmp < 0)
+        low = mid + 2;
+      else if (cmp > 0)
+        high = mid - 2;
+      else
+        return mid; // key found
+    }
+    return -(low + 1);  // key not found.
   }
 }
