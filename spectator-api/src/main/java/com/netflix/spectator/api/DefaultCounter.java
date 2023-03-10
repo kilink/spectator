@@ -15,22 +15,21 @@
  */
 package com.netflix.spectator.api;
 
-import com.netflix.spectator.impl.AtomicDouble;
-
 import java.util.Collections;
+import java.util.concurrent.atomic.DoubleAdder;
 
 /** Counter implementation for the default registry. */
 final class DefaultCounter implements Counter {
 
   private final Clock clock;
   private final Id id;
-  private final AtomicDouble count;
+  private final DoubleAdder count;
 
   /** Create a new instance. */
   DefaultCounter(Clock clock, Id id) {
     this.clock = clock;
     this.id = id;
-    this.count = new AtomicDouble(0.0);
+    this.count = new DoubleAdder();
   }
 
   @Override public Id id() {
@@ -43,17 +42,17 @@ final class DefaultCounter implements Counter {
 
   @Override public Iterable<Measurement> measure() {
     long now = clock.wallTime();
-    double v = count.get();
+    double v = count.sum();
     return Collections.singleton(new Measurement(id, now, v));
   }
 
   @Override public void add(double amount) {
     if (Double.isFinite(amount) && amount > 0.0) {
-      count.addAndGet(amount);
+      count.add(amount);
     }
   }
 
   @Override public double actualCount() {
-    return count.get();
+    return count.sum();
   }
 }
