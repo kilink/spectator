@@ -48,6 +48,9 @@ import java.util.Arrays;
  */
 public final class TagListBuilder {
 
+  private static final String[] EMPTY = new String[0];
+  private static final int DEFAULT_MIN_CAPACITY = 20;
+
   /**
    * Creates a new TagListBuilder instance.
    *
@@ -69,9 +72,7 @@ public final class TagListBuilder {
     return new TagListBuilder(Preconditions.checkNotNull(baseTags, "baseTags"));
   }
 
-  private final int basePos;
-  private final String baseKey;
-  private final boolean baseSorted;
+  private final ArrayTagSet baseTags;
 
   private String[] tags;
   private int pos;
@@ -83,17 +84,8 @@ public final class TagListBuilder {
    * Creates a new builder with initial capacity for 10 key-value pairs.
    */
   TagListBuilder(TagList baseTags) {
-    int n = baseTags.size() * 2 + 20;
-    tags = new String[n];
-    pos = 0;
-    lastKey = null;
-    sorted = true;
-
-    // Add base tags and keep track of state for the reset
-    add(baseTags);
-    basePos = pos;
-    baseKey = lastKey;
-    baseSorted = sorted;
+    this.baseTags = ArrayTagSet.create(baseTags);
+    reset();
   }
 
   /**
@@ -111,7 +103,7 @@ public final class TagListBuilder {
    */
   private void resizeIfNeeded() {
     if (pos >= tags.length) {
-      tags = Arrays.copyOf(tags, tags.length * 2);
+      tags = Arrays.copyOf(tags, Math.max(tags.length * 2, DEFAULT_MIN_CAPACITY));
     }
   }
 
@@ -175,9 +167,10 @@ public final class TagListBuilder {
    * Resets the builder to its initial empty state, allowing it to be reused.
    */
   public void reset() {
-    pos = basePos;
-    lastKey = baseKey;
-    sorted = baseSorted;
+    tags = EMPTY;
+    pos = 0;
+    sorted = true;
+    lastKey = baseTags.isEmpty() ? null : baseTags.getKey(this.baseTags.size() - 1);
   }
 
   /**
@@ -186,8 +179,7 @@ public final class TagListBuilder {
    * @return a new TagList containing all the added tags
    */
   public TagList buildAndReset() {
-    String[] copy = Arrays.copyOf(tags, pos);
-    TagList ts = ArrayTagSet.EMPTY.addAll(copy, pos, sorted, sorted);
+    TagList ts = baseTags.addAll(tags, pos, sorted, sorted);
     reset();
     return ts;
   }
